@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "homecook-user",
+    "displayName": "homecook-user",
     "slug": "homecook-user",
     "version": "1.0.0",
     "orientation": "portrait",
