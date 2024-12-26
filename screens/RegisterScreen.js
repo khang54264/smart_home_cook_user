@@ -1,28 +1,52 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, StyleSheet, Image, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import axios from 'axios';
 
-const RegisterScreen = () => {
+const RegisterScreen = ({ navigation }) => {
+  const ipconfig = '192.168.2.162';
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [verifyPassword, setVerifyPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isVerifyPasswordVisible, setIsVerifyPasswordVisible] = useState(false);
 
   const handleSubmit = () => {
     // Handle form submission logic here
   };
 
-  const InputField = ({ label, value, onChangeText, placeholder, secureTextEntry }) => (
+  const handleNaviLogin = () => {
+    navigation.replace('Login');
+  };
+
+  const InputField = ({ label, value, onChangeText, placeholder, secureTextEntry, toggleVisibility, isPasswordVisible }) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        secureTextEntry={secureTextEntry}
-        accessibilityLabel={label}
-      />
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          secureTextEntry={secureTextEntry}
+          accessibilityLabel={label}
+        />
+        {toggleVisibility && (
+          <TouchableOpacity
+            onPress={toggleVisibility}
+            accessibilityRole="button"
+            accessibilityLabel={isPasswordVisible ? `Hide ${label}` : `Show ${label}`}
+            style={{ right: 0, marginRight: 10, position: 'absolute' }}
+          >
+            <Ionicons
+              name={isPasswordVisible ? "eye-off" : "eye"}
+              size={24}
+              color="rgba(0, 0, 0, 0.5)"
+            />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 
@@ -38,6 +62,11 @@ const RegisterScreen = () => {
   );
 
   return (
+    <ImageBackground
+                source={{ uri: 'https://firebasestorage.googleapis.com/v0/b/home-cook-54264.appspot.com/o/images%2Fcookingbackground.png?alt=media&token=86c6e026-bf67-4293-9928-275531b01367' }} // Đường dẫn đến hình nền
+                style={styles.imgcontainer}
+                imageStyle={styles.backgroundImage} // Tùy chọn để thay đổi cách hình ảnh được hiển thị
+              >
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
@@ -46,13 +75,18 @@ const RegisterScreen = () => {
         <View style={styles.header}>
           <Image
             resizeMode="contain"
-            source={{ uri: 'https://cdn.builder.io/api/v1/image/assets/TEMP/b8d134171f420c1fa85e4c6673976f440513b902eee8d720ad733d4252139d5a?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97' }}
+            source={{ uri: 'https://firebasestorage.googleapis.com/v0/b/home-cook-54264.appspot.com/o/logos%2Fhomecook_png.png?alt=media&token=e27535b4-14e8-40a5-bda0-4ebac2f7c4dd' }}
             style={styles.logo}
             accessibilityLabel="Home Cook Logo"
           />
-          <View style={styles.loginContainer}>
+          <TouchableOpacity
+            style={styles.loginContainer}
+            accessibilityRole="button"
+            accessibilityLabel="Log in"
+            onPress={handleNaviLogin}
+          >
             <Text style={styles.loginText}>Login</Text>
-          </View>
+          </TouchableOpacity>
         </View>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Home Cook</Text>
@@ -75,30 +109,43 @@ const RegisterScreen = () => {
             value={password}
             onChangeText={setPassword}
             placeholder="Enter your password"
-            secureTextEntry
+            secureTextEntry={!isPasswordVisible}
+            toggleVisibility={() => setIsPasswordVisible(!isPasswordVisible)}
+            isPasswordVisible={isPasswordVisible}
           />
           <InputField
             label="Verify Password"
             value={verifyPassword}
             onChangeText={setVerifyPassword}
             placeholder="Verify your password"
-            secureTextEntry
+            secureTextEntry={!isVerifyPasswordVisible}
+            toggleVisibility={() => setIsVerifyPasswordVisible(!isVerifyPasswordVisible)}
+            isPasswordVisible={isVerifyPasswordVisible}
           />
         </View>
         <SubmitButton onPress={handleSubmit} />
       </ScrollView>
     </KeyboardAvoidingView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  imgcontainer: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  backgroundImage: {
+    opacity: 0.5, // Điều chỉnh độ mờ của hình nền
+    resizeMode: 'stretch', // Tùy chỉnh cách hình nền hiển thị
+    maxWidth: 480
+  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    // justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 38,
     paddingTop: 38,
@@ -131,37 +178,32 @@ const styles = StyleSheet.create({
     marginBottom: 29,
   },
   title: {
-    fontFamily: 'Abhaya Libre ExtraBold',
-    fontSize: 48,
-    color: 'rgba(60, 60, 67, 0.6)',
+    fontFamily: 'Roboto',
+    fontSize: 32,
     fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: -0.43,
+    color: 'rgba(16, 111, 205, 0.6)',
   },
   formContainer: {
     width: '100%',
-    marginBottom: 23,
   },
   inputContainer: {
-    marginBottom: 11,
-    width: '100%',
+    marginBottom: 16,
   },
   inputLabel: {
-    position: 'absolute',
-    left: -10000,
-    top: 'auto',
-    width: 1,
-    height: 1,
-    overflow: 'hidden',
+    fontFamily: 'Roboto',
+    fontSize: 14,
+    marginBottom: 8,
+    color: '#333',
   },
   input: {
-    borderRadius: 8,
-    borderColor: 'rgba(217, 217, 217, 1)',
     borderWidth: 1,
-    width: '100%',
+    borderColor: '#ddd',
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontFamily: 'Roboto',
+    fontSize: 14,
+    color: '#333',
   },
   submitButton: {
     backgroundColor: '#32ADE6',

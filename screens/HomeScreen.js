@@ -1,22 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView, TextInput, ImageBackground } from 'react-native';
+import { AuthContext } from '../AuthContext'; // Import AuthContext
+import Ionicons from 'react-native-vector-icons/Ionicons'; // Import icon
 import axios from 'axios';
 
 const HomeScreen = ({ navigation }) => {
+  const ipconfig = '192.168.2.162';
+  const { user, logout } = useContext(AuthContext); // Truy cập thông tin người dùng và hàm logout
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [recipes, setRecipes] = useState([]);
+  const category1Name = '';
+  const [category1, setCategory1] = useState([]);
+  const category2Name = 'Thịt';
+  const [category2, setCategory2] = useState([]);
+  const category3Name = 'Canh';
+  const [category3, setCategory3] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/recipes/getall')
+    axios.get(`http://${ipconfig}:5000/recipes/getall`)
       .then(response => setRecipes(response.data))
+      .catch(error => console.error(error));
+
+    axios.get(`http://${ipconfig}:5000/recipes/getcategory/?name=${category1Name}`)
+      .then(response => setCategory1(response.data))
+      .catch(error => console.error(error));
+
+    axios.get(`http://${ipconfig}:5000/recipes/getcategory/?name=${category2Name}`)
+      .then(response => setCategory2(response.data))
+      .catch(error => console.error(error));
+
+    axios.get(`http://${ipconfig}:5000/recipes/getcategory/?name=${category3Name}`)
+      .then(response => setCategory3(response.data))
       .catch(error => console.error(error));
   }, []);
 
+  //Header
   const Header = () => (
     <View style={styles.header}>
       <View style={styles.logoContainer}>
         <Image
           resizeMode="contain"
-          source={{ uri: "https://cdn.builder.io/api/v1/image/assets/TEMP/b5c6959545ca07f1910fa673458963c23e3d400f3c6410df1c57e3780b39c959?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97" }}
+          source={{ uri: "https://firebasestorage.googleapis.com/v0/b/home-cook-54264.appspot.com/o/logos%2Fhomecook_png.png?alt=media&token=e27535b4-14e8-40a5-bda0-4ebac2f7c4dd" }}
           style={styles.logo}
           accessible={true}
           accessibilityLabel="Home Cook logo"
@@ -24,31 +49,110 @@ const HomeScreen = ({ navigation }) => {
       </View>
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Home Cook</Text>
+        <Text>Welcome, {user.name}!</Text>
       </View>
     </View>
   );
 
+  //Search
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setSearchResults([]);
+    } else {
+      const filteredResults = recipes.filter(recipe =>
+        recipe.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(filteredResults);
+    }
+  };
+
+  const SearchItem = ({ recipe }) => (
+    <TouchableOpacity
+      style={styles.searchItem}
+      onPress={() => navigation.navigate('RecipeDetail', { recipeId: recipe._id, navigation })}
+      accessible={true}
+    accessibilityLabel={`View details for ${recipe.name}`}
+    >
+      <Image
+        source={{ uri: recipe.image_url }}
+        style={styles.searchImage}
+        resizeMode="cover"
+      />
+      <View style={styles.searchItemInfor}>
+        <Text style={styles.searchName} numberOfLines={2}>
+          {recipe.name}
+        </Text>
+        <Text style={styles.searchCookTime}>
+          {recipe.cook_time} phút
+        </Text>
+      </View>
+      
+    </TouchableOpacity>
+  );
+
+  //Item
+  const RecipeItem = ({ recipe }) => (
+    <TouchableOpacity
+      style={styles.recipeItem}
+      onPress={() => navigation.navigate('RecipeDetail', { recipeId: recipe._id, navigation })}
+      accessible={true}
+    accessibilityLabel={`View details for ${recipe.name}`}
+    >
+      <Image
+        source={{ uri: recipe.image_url }}
+        style={styles.recipeImage}
+        resizeMode="cover"
+      />
+      <Text style={styles.recipeName} numberOfLines={2}>
+        {recipe.name}
+      </Text>
+      <Text style={styles.recipeCookTime}>
+        {recipe.cook_time} phút
+      </Text>
+    </TouchableOpacity>
+  );
+
+  //Category
+  const Category = ({ categoryName, categories }) => (
+    <View style={styles.categoryContainer}>
+      <View style={styles.categoryHeader}>
+        <Text style={styles.categoryTitle}>{categoryName}</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CategoryRecipes', { categoryName, categories })}
+        >
+          <Text style={styles.viewAllText}>View All</Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={categories.slice(0,7)} // Hiển thị tối đa 7 công thức
+        renderItem={({ item }) => <RecipeItem recipe={item} />}
+        keyExtractor={(item) => item._id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.recipeList}
+      />
+    </View>
+  );
+
+  //Navigation Item
   const NavigationItem = ({ icon, label, isActive, onPress }) => (
     <TouchableOpacity style={styles.navItem} onPress={onPress} accessible={true} accessibilityLabel={label} accessibilityRole="button" accessibilityState={{ selected: isActive }}>
       <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
-        <Image
-          resizeMode="contain"
-          source={{ uri: icon }}
-          style={styles.icon}
-          accessible={false}
-        />
+        <Ionicons name={icon} size={24} color={isActive ? "#1D1B20" : "#49454F"} />
       </View>
       <Text style={[styles.label, isActive && styles.activeLabel]}>{label}</Text>
     </TouchableOpacity>
   );
 
+  //Navigation Bar
   const NavigationBar = () => {
     const navItems = [
-      { icon: "https://cdn.builder.io/api/v1/image/assets/TEMP/4eb40ae1a24101e97d1b907fbc809ffe410ac25c2ddaf4a8dd13d56fee630ad7?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97", label: "Pantry" },
-      { icon: "https://cdn.builder.io/api/v1/image/assets/TEMP/b435d2c13ab35b1b256c47d13f17e4cbbe2446cbf798d4ba6a47f3adf5ecdd37?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97", label: "Home", isActive: true },
-      { icon: "https://cdn.builder.io/api/v1/image/assets/TEMP/0ea9fe61491f8fdb56c1d65079c528458b77f1859f40dbb2a7c053e47c2bca81?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97", label: "Favorite" },
-      { icon: "https://cdn.builder.io/api/v1/image/assets/TEMP/ae1ac61935c2aa96850f3dd6e8dca7f9a8374b9603063080bbee31d20102ad1f?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97", label: "Shopping" },
-      { icon: "https://cdn.builder.io/api/v1/image/assets/TEMP/55a3535b5dd3b5deb1c805cb9025ebbd6e4171443b73ee4553b1f21cc73c8432?placeholderIfAbsent=true&apiKey=9748ac508bc441cfb045e652c015ab97", label: "Tracking" },
+      { icon: "person-outline", label: "User", screen: "Profile"  },
+      { icon: "home-outline", label: "Home", screen: "Home" ,isActive: true },
+      { icon: "heart-outline", label: "Favorite", screen: "Favorite" },
+      { icon: "clipboard-outline", label: "Plan", screen: "Plan" },
+      { icon: "fitness-outline", label: "AI", screen: "Tracking" },
     ];
   
     return (
@@ -59,20 +163,51 @@ const HomeScreen = ({ navigation }) => {
             icon={item.icon}
             label={item.label}
             isActive={item.isActive}
-            onPress={() => navigation.navigate('LoginScreen')}
+            onPress={() => navigation.navigate(item.screen)}
           />
         ))}
       </View>
     );
   };
 
+
+  //Giao diện màn hình chính
   return (
-    <View style={styles.container}>
-      <Header />
-      <View style={styles.content}>
+    <ImageBackground
+      source={{ uri: 'https://firebasestorage.googleapis.com/v0/b/home-cook-54264.appspot.com/o/images%2Fcookingbackground.png?alt=media&token=86c6e026-bf67-4293-9928-275531b01367' }} // Đường dẫn đến hình nền
+      style={styles.container}
+      imageStyle={styles.backgroundImage} // Tùy chọn để thay đổi cách hình ảnh được hiển thị
+    >
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Tìm kiếm món ăn"
+          onChangeText={handleSearch}
+          value={searchQuery}
+        />
       </View>
-      <NavigationBar />
-    </View>
+      {searchQuery.trim() === '' ? (
+        <ScrollView contentContainerStyle={[styles.content, {paddingBottom: 70,}]} >
+          <Header />
+          <View style={styles.contentBody}>
+            <Category categoryName={"Đề Xuất Hôm Nay"} categories={category1} />
+            <Category categoryName={category2Name} categories={category2} />
+            <Category categoryName={category3Name} categories={category3} />
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={styles.contentBody}>
+          <FlatList
+          data={searchResults}
+          renderItem={({ item }) => <SearchItem recipe={item} />}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ padding: 16 }}
+          />
+        </View>
+      )}
+      <NavigationBar/>
+    </ImageBackground>
+      
   );
 };
 
@@ -84,13 +219,74 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     width: '100%',
     paddingTop: 18,
+    position: 'relative', 
+  },
+  backgroundImage: {
+    opacity: 0.5, // Điều chỉnh độ mờ của hình nền
+    resizeMode: 'stretch', // Tùy chỉnh cách hình nền hiển thị
+    maxWidth: 480
   },
   content: {
+    flexGrow: 1, // Đảm bảo nội dung có thể cuộn được
+  },
+  contentBody: {
     flex: 1,
+  },
+  searchContainer: {
+    width: '100%',
+    paddingHorizontal: 16,
+    marginVertical: 10,
+  },
+  searchInput: {
+    height: 40,
+    borderColor: '#D3D3D3',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingLeft: 10,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  searchItem: {
+    flex: 1,
+    flexDirection: 'row',
+    marginRight: 16,
+    width: '100%',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#D3D3D3',
+    marginVertical: 5,
+    borderRadius: 8,
+  },
+  searchImage: {
+    width: 130,
+    height: 90,
+    borderRadius: 8,
+  },
+  searchItemInfor: {
+    flex: 1,
+    flexDirection: 'column'
+  },
+  searchName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 8,
+    marginRight: 5,
+    marginLeft: 10,
+    overflow: 'hidden',
+    flexWrap: 'wrap',
+    width: '100%'
+  },
+  searchCookTime: {
+    fontSize: 14,
+    color: '#888',
+    marginRight: 5,
+    marginLeft: 10,
+    marginBottom: 3
   },
   header: {
     flexDirection: 'row',
-    marginLeft: 29,
+    marginLeft: 20,
     width: '100%',
     maxWidth: 283,
     gap: 20,
@@ -102,18 +298,19 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: '#32ADE6',
-    backgroundColor: '#32ADE6',
+    backgroundColor: '#4CAF50',
     width: 44,
     height: 44,
     marginTop: 10,
   },
   logo: {
-    width: 20,
+    width: 50,
+    height: 50,
     aspectRatio: 1,
   },
   titleContainer: {
     minHeight: 48,
-    paddingLeft: 16,
+    paddingLeft: 0,
     justifyContent: 'center',
   },
   title: {
@@ -122,11 +319,64 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.43,
   },
+  categoryContainer: {
+    marginVertical: 10,
+    marginBottom: 10
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#1E90FF',
+  },
+  recipeList: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  recipeItem: {
+    marginRight: 16,
+    width: 120,
+    borderWidth: 1,
+    borderColor: '#D3D3D3',
+    borderRadius: 8,
+  },
+  recipeImage: {
+    width: 118,
+    height: 90,
+    borderRadius: 8,
+  },
+  recipeName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 8,
+    marginRight: 5,
+    marginLeft: 5
+  },
+  recipeCookTime: {
+    fontSize: 12,
+    color: '#888',
+    marginRight: 5,
+    marginLeft: 5,
+    marginBottom: 3
+  },
   navigationBar: {
-    backgroundColor: '#F3EDF7',
+    backgroundColor: '#4CAF50',
     flexDirection: 'row',
     paddingHorizontal: 8,
     paddingVertical: 0,
+    position: 'absolute',  // Cố định NavigationBar ở dưới cùng
+    bottom: 0,  // Đảm bảo nó ở dưới cùng
+    width: '100%',  // Chiếm toàn bộ chiều rộng màn hình
   },
   navItem: {
     flex: 1,
@@ -141,7 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeIconContainer: {
-    backgroundColor: '#E8DEF8',
+    backgroundColor: '#388E3C',
   },
   icon: {
     width: 24,
